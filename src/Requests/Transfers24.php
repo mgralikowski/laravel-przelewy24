@@ -2,20 +2,20 @@
 
 namespace Devpark\Transfers24\Requests;
 
-use Devpark\Transfers24\Exceptions\RequestExecutionException;
+use Illuminate\Http\Request;
+use Devpark\Transfers24\Country;
+use Devpark\Transfers24\Channel;
+use Devpark\Transfers24\Language;
+use Devpark\Transfers24\Currency;
+use Illuminate\Foundation\Application;
+use Devpark\Transfers24\Services\Amount;
 use Devpark\Transfers24\Responses\Verify;
 use Illuminate\Config\Repository as Config;
 use Illuminate\Routing\UrlGenerator as Url;
-use Illuminate\Foundation\Application;
-use Devpark\Transfers24\Language;
-use Devpark\Transfers24\Country;
-use Devpark\Transfers24\Currency;
-use Devpark\Transfers24\Channel;
-use Devpark\Transfers24\Services\Amount;
+use Devpark\Transfers24\Exceptions\RequestException;
+use Devpark\Transfers24\Exceptions\RequestExecutionException;
 use Devpark\Transfers24\Responses\Register as RegisterResponse;
 use Devpark\Transfers24\Services\Handlers\Transfers24 as HandlersTransfers24;
-use Devpark\Transfers24\Exceptions\RequestException;
-use Illuminate\Http\Request;
 
 /**
  * Class Transfers24.
@@ -60,7 +60,7 @@ class Transfers24
     /**
      * @var int|null
      */
-    protected $amount = null;
+    protected $amount;
 
     /**
      * @var string
@@ -70,7 +70,7 @@ class Transfers24
     /**
      * @var string|null
      */
-    protected $customer_email = null;
+    protected $customer_email;
 
     /**
      * @var string
@@ -95,7 +95,7 @@ class Transfers24
     /**
      * @var string|null
      */
-    protected $article_name = null;
+    protected $article_name;
 
     /**
      * @var string.
@@ -105,37 +105,37 @@ class Transfers24
     /**
      * @var int
      */
-    protected $article_price = null;
+    protected $article_price;
 
     /**
      * @var string|null
      */
-    protected $article_description = null;
+    protected $article_description;
 
     /**
      * @var string|null
      */
-    protected $client_name = null;
+    protected $client_name;
 
     /**
      * @var int|null
      */
-    protected $client_phone = null;
+    protected $client_phone;
 
     /**
      * @var string|null
      */
-    protected $address = null;
+    protected $address;
 
     /**
      * @var string|null
      */
-    protected $zip_code = null;
+    protected $zip_code;
 
     /**
      * @var string|null
      */
-    protected $city = null;
+    protected $city;
 
     /**
      * @var string
@@ -145,22 +145,22 @@ class Transfers24
     /**
      * @var int|null
      */
-    protected $channel = null;
+    protected $channel;
 
     /**
      * @var int|null
      */
-    protected $shipping_cost = null;
+    protected $shipping_cost;
 
     /**
      * @var null|string
      */
-    protected $transfer_label = null;
+    protected $transfer_label;
 
     /**
      * @var int|null
      */
-    protected $article_number = null;
+    protected $article_number;
 
     /**
      * @var array|null;
@@ -193,8 +193,8 @@ class Transfers24
      * Transfers24 constructor.
      *
      * @param HandlersTransfers24 $transfers24
-     * @param RegisterResponse $response
-     * @param Application $app
+     * @param RegisterResponse    $response
+     * @param Application         $app
      */
     public function __construct(
         HandlersTransfers24 $transfers24,
@@ -209,30 +209,6 @@ class Transfers24
         $this->url = $this->app->make(Url::class);
 
         $this->setDefaultUrls();
-    }
-
-    /**
-     * Filter empty and no valid string.
-     *
-     * @param $string
-     *
-     * @return bool
-     */
-    protected function filterString($string)
-    {
-        return (! empty($string) && is_string($string));
-    }
-
-    /**
-     * Filter empty and no valid number.
-     *
-     * @param $number
-     *
-     * @return bool
-     */
-    protected function filterNumber($number)
-    {
-        return (! empty($number) && is_numeric($number));
     }
 
     /**
@@ -283,15 +259,14 @@ class Transfers24
      * Set amount and currency.
      *
      * @param $amount
-     *
      * @param $currency
      *
      * @return $this
+     * @throws \Devpark\Transfers24\Exceptions\CurrencyException
      */
     public function setAmount($amount, $currency = Currency::PLN)
     {
         $this->currency = Currency::get($currency);
-
         $this->amount = Amount::get($amount);
 
         if (empty($this->article_price)) {
@@ -351,8 +326,8 @@ class Transfers24
      * Set sale article name, price, quantity.
      *
      * @param string $article_name
-     * @param float $article_price
-     * @param int $article_quantity
+     * @param float  $article_price
+     * @param int    $article_quantity
      *
      * @return $this
      */
@@ -552,8 +527,8 @@ class Transfers24
      * Add next sale article.
      *
      * @param string $name
-     * @param float $price
-     * @param int $quantity
+     * @param float  $price
+     * @param int    $quantity
      * @param string $number
      * @param string $description
      *
@@ -652,11 +627,9 @@ class Transfers24
             throw new RequestException('Empty email or amount');
         }
 
-        $this->transaction_id = uniqid();
+        $this->transaction_id = uniqid($this->article_name, true);
 
-        $response = $this->transfers24->init($this->setFields());
-
-        return $response;
+        return $this->transfers24->init($this->setFields());
     }
 
     /**
@@ -671,25 +644,9 @@ class Transfers24
     }
 
     /**
-     * Get url.
-     *
-     * @param string $url
-     *
-     * @return string
-     */
-    protected function getUrl($url)
-    {
-        if (starts_with($url, ['http://', 'https://'])) {
-            return $url;
-        }
-
-        return $this->url->to($url);
-    }
-
-    /**
      * Return url to register Payment or redirect to transfers24.
      *
-     * @param $token
+     * @param      $token
      * @param bool $redirect
      *
      * @return string
@@ -714,5 +671,45 @@ class Transfers24
     public function receive(Request $request)
     {
         return $this->transfers24->receive($request->all());
+    }
+
+    /**
+     * Filter empty and no valid string.
+     *
+     * @param $string
+     *
+     * @return bool
+     */
+    protected function filterString($string)
+    {
+        return (! empty($string) && is_string($string));
+    }
+
+    /**
+     * Filter empty and no valid number.
+     *
+     * @param $number
+     *
+     * @return bool
+     */
+    protected function filterNumber($number)
+    {
+        return (! empty($number) && is_numeric($number));
+    }
+
+    /**
+     * Get url.
+     *
+     * @param string $url
+     *
+     * @return string
+     */
+    protected function getUrl($url)
+    {
+        if (strpos($url, 'http://') === 0 || strpos($url, 'https://') === 0) {
+            return $url;
+        }
+
+        return $this->url->to($url);
     }
 }
