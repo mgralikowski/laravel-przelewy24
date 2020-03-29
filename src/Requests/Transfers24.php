@@ -2,6 +2,7 @@
 
 namespace Devpark\Transfers24\Requests;
 
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Devpark\Transfers24\Country;
 use Devpark\Transfers24\Channel;
@@ -627,7 +628,7 @@ class Transfers24
             throw new RequestException('Empty email or amount');
         }
 
-        $this->transaction_id = uniqid($this->article_name, true);
+        $this->transaction_id = Str::random(32);
 
         return $this->transfers24->init($this->setFields());
     }
