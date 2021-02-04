@@ -54,6 +54,11 @@ class Transfers24
     protected $session_id = null;
 
     /**
+     * @var string|null
+     */
+    protected $statement = null;
+
+    /**
      * @var array
      */
     protected $error_message = [];
@@ -233,6 +238,16 @@ class Transfers24
     }
 
     /**
+     * Get Statement id of payment.
+     *
+     * @return string
+     */
+    public function getStatement(): string
+    {
+        return $this->statement;
+    }
+
+    /**
      * Verify payment after receiving callback.
      *
      * @param $post_data
@@ -249,6 +264,7 @@ class Transfers24
         if ($check_sum) {
             $this->session_id = $this->receive_parameters['p24_session_id'];
             $this->order_id = $this->receive_parameters['p24_order_id'];
+            $this->statement = $this->receive_parameters['p24_statement'];
 
             $fields = [
                 'p24_session_id' => $this->session_id,
