@@ -26,4 +26,14 @@ class Verify extends Response
     {
         return $this->transfers24->getOrderId();
     }
+    
+    /**
+     * Get Statement id of payment.
+     *
+     * @return string
+     */
+    public function getStatement()
+    {
+        return $this->transfers24->getStatement();
+    }
 }
