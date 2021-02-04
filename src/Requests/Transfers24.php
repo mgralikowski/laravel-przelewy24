@@ -559,6 +559,22 @@ class Transfers24
     }
 
     /**
+     * Set custom transaction id.
+     *
+     * @param string $transaction_id
+     *
+     * @return $this
+     */
+    public function setTransactionId(string $transaction_id)
+    {
+        if ($this->filterString($transaction_id)) {
+            $this->transaction_id = $transaction_id;
+        }
+
+        return $this;
+    }
+
+    /**
      * add parameter to $fields.
      *
      * @param string $label
@@ -628,7 +644,9 @@ class Transfers24
             throw new RequestException('Empty email or amount');
         }
 
+        if (!isset($this->transaction_id)) {
         $this->transaction_id = Str::random(32);
+        }
 
         return $this->transfers24->init($this->setFields());
     }
